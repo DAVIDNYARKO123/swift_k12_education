@@ -1,0 +1,62 @@
+import SpriteKit
+import PlaygroundSupport
+
+class GameScene: SKScene, SKPhysicsContactDelegate {
+
+    var robot: SKSpriteNode!
+
+    override func didMove(to view: SKView) {
+        backgroundColor = .white
+        physicsWorld.contactDelegate = self
+        physicsWorld.gravity = CGVector(dx: 0, dy: -9)
+
+        // Ground
+        let ground = SKSpriteNode(color: .gray, size: CGSize(width: frame.width, height: 10))
+        ground.position = CGPoint(x: frame.midX, y: 15)
+        ground.physicsBody = SKPhysicsBody(rectangleOf: ground.size)
+        ground.physicsBody?.isDynamic = false
+        addChild(ground)
+
+        // Robot
+        robot = SKSpriteNode(color: .blue, size: CGSize(width: 40, height: 60))
+        robot.position = CGPoint(x: 100, y: 60)
+        robot.physicsBody = SKPhysicsBody(rectangleOf: robot.size)
+        robot.physicsBody?.allowsRotation = false
+        robot.physicsBody?.categoryBitMask = 1
+        robot.physicsBody?.contactTestBitMask = 1
+        addChild(robot)
+
+        // Spawn obstacles every 2 seconds
+        run(.repeatForever(.sequence([
+            .wait(forDuration: 2.0),
+            .run { self.spawnObstacle() }
+        ])))
+    }
+
+    // Tap to jump
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        robot.physicsBody?.velocity = .zero
+        robot.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 120))
+    }
+
+    func spawnObstacle() {
+        let obs = SKSpriteNode(color: .red, size: CGSize(width: 20, height: 50))
+        obs.position = CGPoint(x: frame.maxX, y: 45)
+        obs.physicsBody = SKPhysicsBody(rectangleOf: obs.size)
+        obs.physicsBody?.isDynamic = false
+        obs.physicsBody?.categoryBitMask = 2
+        obs.physicsBody?.contactTestBitMask = 1
+        addChild(obs)
+        obs.run(.sequence([.moveTo(x: -30, duration: 2.5), .removeFromParent()]))
+    }
+
+    func didBegin(_ contact: SKPhysicsContact) {
+        robot.color = .red
+        removeAllActions()
+    }
+}
+
+// --- THESE LINES MUST BE LOOSE, NOT INSIDE A CLASS OR STRUCT ---
+let scene = GameScene(size: CGSize(width: 600, height: 200))
+PlaygroundPage.current.liveView = SKView(frame: .init(origin: .zero, size: scene.size))
+(PlaygroundPage.current.liveView as! SKView).presentScene(scene)

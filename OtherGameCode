@@ -1,0 +1,32 @@
+//Rock, Paper, Scissors Game
+//Paste this inside either game one or two and change the name
+//Concepts: Arrays,(.randomElement()) randomization, user input, string comparison
+let options = ["rock", "paper", "scissors"]
+let computerChoice = options.randomElement()!
+let playerChoice = getString(prompt: "Rock, paper, or scissors?").lowercased()
+
+if playerChoice == computerChoice {
+    print("It's a tie!")
+} else if (playerChoice == "rock" && computerChoice == "scissors") {
+    print("You win!")
+} // ... students fill in the rest
+
+//Word Scramble Game
+//Paste this inside either game one or two and change the name
+//concepts: String manipulation, randomization, user input(.shuffled(),.joined(), .uppercased())
+let word = "SWIFT"
+let scrambled = String(word.shuffled())
+print("Unscramble this word: \(scrambled)")
+let guess = getString(prompt: "Your guess:").uppercased()
+if guess == word { print("✅ Correct!") }
+
+//Vending Machine Simulator
+//Paste this inside either game one or two and change the name
+//concepts: Dictionaries, user input, conditional logic, State management
+var balance = 0
+let vendingMachine = ["Soda": 2, "Chips": 1, "Cookie": 3]
+balance += getInt(prompt: "Insert coins:")
+let choice = getString(prompt: "What do you want to buy?")
+if let price = vendingMachine[choice] {
+    if balance >= price { print("Dispensing \(choice)...") }
+}

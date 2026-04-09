@@ -1,0 +1,81 @@
+import Foundation
+
+//Helper Functions
+func getString(prompt: String) -> String {
+    print(prompt, terminator: " ")
+    return readLine() ?? ""
+}
+
+func getInt(prompt: String) -> Int {
+    while true {
+        if let input = Int(getString(prompt: prompt)) {
+            return input
+        }
+        print("❌ Oops! Please enter a valid number.")
+    }
+}
+
+//Game 1: Number Guesser (With Lives)
+func playGuessingGame() {
+    print("\n🎯=== NUMBER GUESSER ===🎯")
+    let secretNumber = Int.random(in: 1...10)
+    var attemptsLeft = 3
+    
+    while attemptsLeft > 0 {
+        let guess = getInt(prompt: "Guess a number (1-10). Attempts left: \(attemptsLeft)")
+        
+        if guess == secretNumber {
+            print("🎉 EXACTLY! You guessed it!")
+            return 
+        } else if guess < secretNumber {
+            print("⬇️ Too low!")
+        } else {
+            print("⬆️ Too high!")
+        }
+        attemptsLeft -= 1
+    }
+    print("💀 Game Over! The number was \(secretNumber).")
+}
+
+//Game 2: Text Adventure (With Inventory)
+func playTextAdventure() {
+    print("\n⚔️=== TEXT ADVENTURE ===⚔️")
+    var hasSword = false
+    
+    print("You stand at a crossroads. Go LEFT to the forest, or RIGHT to the dungeon.")
+    let choice1 = getString(prompt: "LEFT or RIGHT?").lowercased()
+    
+    if choice1 == "left" {
+        print("🌲 You find a rusty sword on the ground.")
+        hasSword = true
+        print("A goblin attacks!")
+        if hasSword {
+            print("⚔️ You use the sword! You win!")
+        }
+    } else if choice1 == "right" {
+        print("🐉 A dragon eats you. Game Over.")
+    } else {
+        print("🤷 You wander off and get lost.")
+    }
+}
+
+//Main Menu Loop
+var isPlaying = true
+
+while isPlaying {
+    print("\n🎮=== MAIN MENU ===🎮")
+    print("1. Number Guesser")
+    print("2. Text Adventure")
+    print("3. Quit")
+    
+    let choice = getString(prompt: "Choose a game (1-3)")
+    
+    switch choice {
+    case "1": playGuessingGame()
+    case "2": playTextAdventure()
+    case "3": 
+        print("👋 Thanks for playing!")
+        isPlaying = false
+    default: print("❌ Invalid choice.")
+    }
+}
