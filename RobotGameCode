@@ -1,62 +1,106 @@
-import SpriteKit
-import PlaygroundSupport
+import SpriteKit              // This lets us create 2D games (graphics, movement, physics)
+import PlaygroundSupport     // This lets the game run inside a Swift Playground
 
+// This is our main game scene (like the "world" where everything happens)
 class GameScene: SKScene, SKPhysicsContactDelegate {
 
-    var robot: SKSpriteNode!
+    var robot: SKSpriteNode!   // This will store our player (the blue robot)
 
+    // This function runs once when the scene appears on screen
     override func didMove(to view: SKView) {
-        backgroundColor = .white
-        physicsWorld.contactDelegate = self
-        physicsWorld.gravity = CGVector(dx: 0, dy: -9)
+        backgroundColor = .white   // Set the background color to white
+        
+        physicsWorld.contactDelegate = self   // Allows us to detect collisions
+        physicsWorld.gravity = CGVector(dx: 0, dy: -9) // Gravity pulls objects downward
 
-        // Ground
+        // -------------------------
+        // Create the ground
+        // -------------------------
         let ground = SKSpriteNode(color: .gray, size: CGSize(width: frame.width, height: 10))
-        ground.position = CGPoint(x: frame.midX, y: 15)
-        ground.physicsBody = SKPhysicsBody(rectangleOf: ground.size)
-        ground.physicsBody?.isDynamic = false
-        addChild(ground)
+        ground.position = CGPoint(x: frame.midX, y: 15) // Place it near the bottom
 
-        // Robot
+        // Give the ground a physics body (so things can collide with it)
+        ground.physicsBody = SKPhysicsBody(rectangleOf: ground.size)
+        ground.physicsBody?.isDynamic = false // "false" means it doesn't move
+
+        addChild(ground) // Add ground to the scene
+
+        // -------------------------
+        // Create the robot (player)
+        // -------------------------
         robot = SKSpriteNode(color: .blue, size: CGSize(width: 40, height: 60))
-        robot.position = CGPoint(x: 100, y: 60)
+        robot.position = CGPoint(x: 100, y: 60) // Start position
+
+        // Give the robot a physics body (so gravity affects it)
         robot.physicsBody = SKPhysicsBody(rectangleOf: robot.size)
-        robot.physicsBody?.allowsRotation = false
+
+        robot.physicsBody?.allowsRotation = false // Prevent it from spinning
+
+        // These are used for collision detection
         robot.physicsBody?.categoryBitMask = 1
         robot.physicsBody?.contactTestBitMask = 1
-        addChild(robot)
 
-        // Spawn obstacles every 2 seconds
+        addChild(robot) // Add robot to the scene
+
+        // -------------------------
+        // Spawn obstacles every 2 seconds (forever)
+        // -------------------------
         run(.repeatForever(.sequence([
-            .wait(forDuration: 2.0),
-            .run { self.spawnObstacle() }
+            .wait(forDuration: 2.0),           // Wait 2 seconds
+            .run { self.spawnObstacle() }      // Then create an obstacle
         ])))
     }
 
-    // Tap to jump
+    // -------------------------
+    // Called when the user taps the screen
+    // -------------------------
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        robot.physicsBody?.velocity = .zero
-        robot.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 120))
+        robot.physicsBody?.velocity = .zero // Stop any current movement
+        robot.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 120)) // Push robot upward (jump)
     }
 
+    // -------------------------
+    // Creates an obstacle (red block)
+    // -------------------------
     func spawnObstacle() {
         let obs = SKSpriteNode(color: .red, size: CGSize(width: 20, height: 50))
-        obs.position = CGPoint(x: frame.maxX, y: 45)
+        
+        obs.position = CGPoint(x: frame.maxX, y: 45) // Start on the right side
+        
         obs.physicsBody = SKPhysicsBody(rectangleOf: obs.size)
-        obs.physicsBody?.isDynamic = false
+        obs.physicsBody?.isDynamic = false // It doesn't fall or move from physics
+        
+        // Collision setup
         obs.physicsBody?.categoryBitMask = 2
         obs.physicsBody?.contactTestBitMask = 1
-        addChild(obs)
-        obs.run(.sequence([.moveTo(x: -30, duration: 2.5), .removeFromParent()]))
+        
+        addChild(obs) // Add obstacle to the scene
+
+        // Move obstacle to the left, then remove it when off-screen
+        obs.run(.sequence([
+            .moveTo(x: -30, duration: 2.5),
+            .removeFromParent()
+        ]))
     }
 
+    // -------------------------
+    // Called when something collides with something else
+    // -------------------------
     func didBegin(_ contact: SKPhysicsContact) {
-        robot.color = .red
-        removeAllActions()
+        robot.color = .red   // Turn robot red (game over indicator)
+        removeAllActions()   // Stop spawning obstacles
     }
 }
 
-// --- THESE LINES MUST BE LOOSE, NOT INSIDE A CLASS OR STRUCT ---
-let scene = GameScene(size: CGSize(width: 600, height: 200))
-PlaygroundPage.current.liveView = SKView(frame: .init(origin: .zero, size: scene.size))
-(PlaygroundPage.current.liveView as! SKView).presentScene(scene)
+// -------------------------
+// These lines START the game
+// -------------------------
+
+let scene = GameScene(size: CGSize(width: 600, height: 200)) 
+// Create the game scene with a specific size
+
+PlaygroundPage.current.liveView = SKView(frame: .init(origin: .zero, size: scene.size)) 
+// Create a view (window) to display the game
+
+(PlaygroundPage.current.liveView as! SKView).presentScene(scene) 
+// Show the scene in the view
