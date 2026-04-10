@@ -1,4 +1,4 @@
-import Foundation
+import Foundation //This is just a library import. Beyond the current scope of our workshop
 
 //Helper Functions
 func getString(prompt: String) -> String {
