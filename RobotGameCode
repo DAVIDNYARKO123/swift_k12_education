@@ -1,106 +1,147 @@
-import SpriteKit              // This lets us create 2D games (graphics, movement, physics)
-import PlaygroundSupport     // This lets the game run inside a Swift Playground
+import SwiftUI
+import SpriteKit
 
-// This is our main game scene (like the "world" where everything happens)
+// This is the "game world" where everything happens
 class GameScene: SKScene, SKPhysicsContactDelegate {
-
-    var robot: SKSpriteNode!   // This will store our player (the blue robot)
-
-    // This function runs once when the scene appears on screen
+    var robot: SKSpriteNode!    // Our player (blue rectangle)
+    var isGameOver = false
+    var dodgeCount = 0           // How many obstacles the player has dodged
+    var scoreLabel: SKLabelNode! // The counter shown on screen
+    
     override func didMove(to view: SKView) {
-        backgroundColor = .white   // Set the background color to white
+        backgroundColor = .white
         
-        physicsWorld.contactDelegate = self   // Allows us to detect collisions
-        physicsWorld.gravity = CGVector(dx: 0, dy: -9) // Gravity pulls objects downward
-
+        // Turn on collision detection
+        physicsWorld.contactDelegate = self
+        physicsWorld.gravity = CGVector(dx: 0, dy: -9)
+        
         // -------------------------
         // Create the ground
         // -------------------------
-        let ground = SKSpriteNode(color: .gray, size: CGSize(width: frame.width, height: 10))
-        ground.position = CGPoint(x: frame.midX, y: 15) // Place it near the bottom
-
-        // Give the ground a physics body (so things can collide with it)
+        let ground = SKSpriteNode(color: .gray, size: CGSize(width: frame.width, height: 20))
+        ground.position = CGPoint(x: frame.midX, y: 10)
         ground.physicsBody = SKPhysicsBody(rectangleOf: ground.size)
-        ground.physicsBody?.isDynamic = false // "false" means it doesn't move
-
-        addChild(ground) // Add ground to the scene
-
+        ground.physicsBody?.isDynamic = false   // Ground does NOT move
+        ground.physicsBody?.categoryBitMask = 2  // Ground is category 2
+        addChild(ground)
+        
         // -------------------------
         // Create the robot (player)
         // -------------------------
         robot = SKSpriteNode(color: .blue, size: CGSize(width: 40, height: 60))
-        robot.position = CGPoint(x: 100, y: 60) // Start position
-
-        // Give the robot a physics body (so gravity affects it)
+        robot.position = CGPoint(x: 150, y: 80)
         robot.physicsBody = SKPhysicsBody(rectangleOf: robot.size)
-
-        robot.physicsBody?.allowsRotation = false // Prevent it from spinning
-
-        // These are used for collision detection
-        robot.physicsBody?.categoryBitMask = 1
-        robot.physicsBody?.contactTestBitMask = 1
-
-        addChild(robot) // Add robot to the scene
-
+        robot.physicsBody?.allowsRotation = false   // Prevent spinning
+        robot.physicsBody?.categoryBitMask = 1       // Robot is category 1
+        robot.physicsBody?.contactTestBitMask = 4   // Notify when robot hits category 4 (obstacle)
+        addChild(robot)
+        
         // -------------------------
-        // Spawn obstacles every 2 seconds (forever)
+        // Create the score label (top-right corner)
         // -------------------------
-        run(.repeatForever(.sequence([
-            .wait(forDuration: 2.0),           // Wait 2 seconds
-            .run { self.spawnObstacle() }      // Then create an obstacle
-        ])))
+        scoreLabel = SKLabelNode(text: "Dodged: 0")
+        scoreLabel.fontSize = 28
+        scoreLabel.fontColor = .black
+        scoreLabel.horizontalAlignmentMode = .right   // Anchor text to the right
+        scoreLabel.position = CGPoint(x: frame.maxX - 20, y: frame.maxY - 50)
+        addChild(scoreLabel)
+        
+        // -------------------------
+        // Wait 3 seconds before the first obstacle so the
+        // frame is fully sized and the player is ready
+        // -------------------------
+        run(.sequence([
+            .wait(forDuration: 3.0),
+            .run { self.spawnObstacle() },
+            .wait(forDuration: 2.0),
+            .repeatForever(.sequence([
+                .run { self.spawnObstacle() },
+                .wait(forDuration: 2.0)
+            ]))
+        ]))
     }
-
+    
     // -------------------------
-    // Called when the user taps the screen
+    // Every frame: keep robot from going above screen
+    // -------------------------
+    override func update(_ currentTime: TimeInterval) {
+        let maxY = frame.maxY - 50   // Upper bound = near top of screen
+        if robot.position.y > maxY {
+            robot.position.y = maxY
+            robot.physicsBody?.velocity.dy = 0   // Stop upward movement
+        }
+    }
+    
+    // -------------------------
+    // Called when the screen is tapped
     // -------------------------
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        robot.physicsBody?.velocity = .zero // Stop any current movement
-        robot.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 120)) // Push robot upward (jump)
+        guard !isGameOver else { return }   // Ignore taps after game over
+        robot.physicsBody?.velocity = .zero   // Stop current movement
+        robot.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 70))
     }
-
+    
     // -------------------------
-    // Creates an obstacle (red block)
+    // Create an obstacle (red, moves left toward the robot)
+    // Speed increases the more obstacles have been dodged
     // -------------------------
     func spawnObstacle() {
-        let obs = SKSpriteNode(color: .red, size: CGSize(width: 20, height: 50))
+        let obs = SKSpriteNode(color: .red, size: CGSize(width: 20, height: 60))
         
-        obs.position = CGPoint(x: frame.maxX, y: 45) // Start on the right side
-        
+        // x: start just off the right edge of the screen
+        // y: 50 = ground top (20) + half obstacle height (30)
+        obs.position = CGPoint(x: frame.maxX + 20, y: 50)
         obs.physicsBody = SKPhysicsBody(rectangleOf: obs.size)
-        obs.physicsBody?.isDynamic = false // It doesn't fall or move from physics
+        obs.physicsBody?.isDynamic = false        // Does not fall
+        obs.physicsBody?.categoryBitMask = 4       // Obstacle is category 4
+        obs.physicsBody?.contactTestBitMask = 1    // Notify when hit by category 1
+        addChild(obs)
         
-        // Collision setup
-        obs.physicsBody?.categoryBitMask = 2
-        obs.physicsBody?.contactTestBitMask = 1
+        // Start slow (3.5s), get faster with each dodge (min 1.2s)
+        let speed = max(1.2, 3.5 - Double(dodgeCount) * 0.15)
         
-        addChild(obs) // Add obstacle to the scene
-
-        // Move obstacle to the left, then remove it when off-screen
+        // Move obstacle left across the full screen, then remove it
         obs.run(.sequence([
-            .moveTo(x: -30, duration: 2.5),
+            .moveTo(x: -50, duration: speed),
+            .run { self.obstacleDodged() },   // Player dodged it!
             .removeFromParent()
         ]))
     }
-
+    
     // -------------------------
-    // Called when something collides with something else
+    // Called when an obstacle passes the robot safely
+    // -------------------------
+    func obstacleDodged() {
+        guard !isGameOver else { return }
+        dodgeCount += 1
+        scoreLabel.text = "Dodged: \(dodgeCount)"   // Update the counter
+    }
+    
+    // -------------------------
+    // Called when robot hits something
     // -------------------------
     func didBegin(_ contact: SKPhysicsContact) {
-        robot.color = .red   // Turn robot red (game over indicator)
-        removeAllActions()   // Stop spawning obstacles
+        guard !isGameOver else { return }
+        let masks = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+        guard masks == (1 | 4) else { return }   // Only robot + obstacle
+        
+        isGameOver = true
+        robot.color = .red      // Turn robot red (game over)
+        removeAllActions()      // Stop spawning obstacles
     }
 }
 
 // -------------------------
-// These lines START the game
+// SwiftUI View (displays the game)
 // -------------------------
-
-let scene = GameScene(size: CGSize(width: 600, height: 200)) 
-// Create the game scene with a specific size
-
-PlaygroundPage.current.liveView = SKView(frame: .init(origin: .zero, size: scene.size)) 
-// Create a view (window) to display the game
-
-(PlaygroundPage.current.liveView as! SKView).presentScene(scene) 
-// Show the scene in the view
+struct ContentView: View {
+    var scene: SKScene {
+        let scene = GameScene()
+        scene.scaleMode = .resizeFill   // Fills the whole screen automatically
+        return scene
+    }
+    var body: some View {
+        SpriteView(scene: scene)
+            .ignoresSafeArea()   // Stretch into edges and notch
+    }
+}
